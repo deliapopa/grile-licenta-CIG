@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grile Management</title>
+<style>
+  :root{
+    --bg:#0F1110;
+    --bg-soft:#171A18;
+    --card:#1C1F1D;
+    --card-hover:#23271F;
+    --line:#2C302C;
+    --ink:#EDEAE0;
+    --ink-dim:#9A9C92;
+    --ink-faint:#6B6E64;
+
+    --accent:#D7FF3F;
+    --accent-ink:#0F1110;
+
+    --correct:#7FD858;
+    --correct-bg:rgba(127,216,88,0.10);
+    --correct-border:rgba(127,216,88,0.4);
+
+    --wrong:#FF6B5E;
+    --wrong-bg:rgba(255,107,94,0.10);
+    --wrong-border:rgba(255,107,94,0.4);
+
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+
+    --display:"Fjalla One","Arial Narrow",var(--sans);
+    --serif:"Lora","Iowan Old Style",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"JetBrains Mono","SF Mono",Consolas,Menlo,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size:48px 48px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrap{
+    max-width:780px;
+    margin:0 auto;
+    padding:0 20px 90px;
+    position:relative;
+    z-index:1;
+  }
+
+  header.masthead{
+    padding:44px 0 28px;
+  }
+  .masthead-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:20px;
+  }
+  h1.title{
+    font-family:var(--display);
+    font-weight:400;
+    text-transform:uppercase;
+    font-size:clamp(32px,6.5vw,52px);
+    letter-spacing:0.01em;
+    margin:0 0 10px;
+    line-height:0.98;
+  }
+  .title .accent-word{ color:var(--accent); }
+  .subtitle{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:16px;
+    color:var(--ink-dim);
+    margin:0;
+    max-width:480px;
+  }
+
+  nav.subjects{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin:32px 0 30px;
+  }
+  @media (max-width:560px){
+    nav.subjects{grid-template-columns:1fr;}
+  }
+  .subject-btn{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:18px 18px 16px;
+    text-align:left;
+    cursor:pointer;
+    font-family:var(--sans);
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color:var(--ink);
+    position:relative;
+    overflow:hidden;
+  }
+  .subject-btn:hover{ background:var(--card-hover); border-color:var(--ink-faint); }
+  .subject-btn:active{ transform:scale(0.99); }
+  .subject-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .subject-btn.active{
+    border-color:var(--subj-color, var(--accent));
+    box-shadow:0 0 0 1px var(--subj-color, var(--accent)) inset;
+  }
+  .subject-btn-mix{
+    grid-column:1 / -1;
+    background:linear-gradient(135deg, var(--card) 0%, rgba(255,94,156,0.06) 100%);
+  }
+  .subject-btn-mix .subject-name::after{
+    content:" — 50 din toate cele 200";
+    font-size:11px;
+    color:var(--ink-faint);
+    font-weight:400;
+  }
+  .subject-top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .subject-num{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:var(--ink-faint);
+  }
+  .subject-dot{
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--subj-color, var(--accent));
+    flex-shrink:0;
+  }
+  .subject-name{
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .subject-progress-track{
+    height:4px;
+    width:100%;
+    background:var(--line);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .subject-progress-fill{
+    height:100%;
+    background:var(--subj-color, var(--accent));
+    border-radius:2px;
+    transition:width 0.3s ease;
+  }
+  .subject-progress-label{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    display:flex;
+    justify-content:space-between;
+  }
+  .subject-progress-label .score-part{ color:var(--ink-dim); }
+
+  .status-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 18px;
+    background:var(--bg-soft);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    margin-bottom:26px;
+    font-family:var(--mono);
+    font-size:13px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .status-left{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .status-chip{ display:flex; align-items:center; gap:6px; }
+  .status-dot{ width:7px; height:7px; border-radius:50%; }
+  .status-dot.correct{ background:var(--correct); }
+  .status-dot.wrong{ background:var(--wrong); }
+  .status-dot.pending{ background:var(--ink-faint); }
+  .reset-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:8px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:all 0.15s ease;
+    white-space:nowrap;
+  }
+  .reset-btn:hover{ background:var(--wrong); color:#1a0a08; border-color:var(--wrong); }
+
+  .question-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    margin-bottom:14px;
+    overflow:hidden;
+    scroll-margin-top:20px;
+    transition:border-color 0.2s ease;
+  }
+  .question-card.answered-correct{ border-color:var(--correct-border); }
+  .question-card.answered-wrong{ border-color:var(--wrong-border); }
+
+  .q-head{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    padding:20px 22px 16px;
+  }
+  .q-num{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:22px;
+    color:var(--subj-color, var(--accent));
+    min-width:38px;
+    line-height:1.25;
+    flex-shrink:0;
+  }
+  .q-text{
+    font-family:var(--serif);
+    font-size:19px;
+    line-height:1.55;
+    padding-top:2px;
+    color:var(--ink);
+  }
+
+  .q-options{
+    padding:0 22px 20px 76px;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  @media (max-width:520px){
+    .q-options{ padding-left:22px; }
+  }
+
+  .opt-btn{
+    text-align:left;
+    background:var(--bg-soft);
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    padding:13px 16px;
+    font-family:var(--sans);
+    font-size:16.5px;
+    line-height:1.45;
+    cursor:pointer;
+    display:flex;
+    gap:11px;
+    transition:background 0.12s ease, border-color 0.12s ease;
+    color:var(--ink);
+    width:100%;
+  }
+  .opt-btn:hover:not(:disabled){ background:#262A24; border-color:var(--ink-faint); }
+  .opt-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .opt-btn:disabled{ cursor:default; }
+
+  .opt-letter{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:14px;
+    color:var(--ink-faint);
+    min-width:20px;
+    padding-top:1px;
+  }
+
+  .opt-btn.correct-answer{
+    background:var(--correct-bg);
+    border-color:var(--correct-border);
+  }
+  .opt-btn.correct-answer .opt-letter{ color:var(--correct); }
+  .opt-btn.wrong-selected{
+    background:var(--wrong-bg);
+    border-color:var(--wrong-border);
+  }
+  .opt-btn.wrong-selected .opt-letter{ color:var(--wrong); }
+  .opt-btn.dim{ opacity:0.4; }
+
+  .q-feedback{
+    padding:0 22px 20px 76px;
+    font-family:var(--mono);
+    font-size:14px;
+    letter-spacing:0.02em;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  @media (max-width:520px){
+    .q-feedback{ padding-left:22px; }
+  }
+  .q-feedback.correct{ color:var(--correct); }
+  .q-feedback.wrong{ color:var(--wrong); }
+  .q-feedback .fb-icon{ font-size:13px; }
+
+  .results-screen{ display:none; }
+  .results-screen.visible{ display:block; }
+
+  .results-hero{
+    text-align:center;
+    padding:42px 24px 36px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    margin-bottom:22px;
+    position:relative;
+    overflow:hidden;
+  }
+  .results-ring-wrap{ display:flex; justify-content:center; margin-bottom:18px; }
+  .results-ring{ position:relative; width:148px; height:148px; }
+  .results-ring svg{ transform:rotate(-90deg); }
+  .results-ring-bg{ fill:none; stroke:var(--line); stroke-width:10; }
+  .results-ring-fill{
+    fill:none;
+    stroke:var(--subj-color, var(--accent));
+    stroke-width:10;
+    stroke-linecap:round;
+    transition:stroke-dashoffset 0.6s ease;
+  }
+  .results-ring-label{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .results-ring-pct{ font-family:var(--display); font-size:34px; color:var(--ink); }
+  .results-ring-frac{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); margin-top:2px; }
+  .results-subject-name{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-faint); margin-bottom:6px; }
+  .results-headline{ font-family:var(--display); text-transform:uppercase; font-size:24px; margin:0 0 18px; color:var(--ink); }
+  .results-breakdown{ display:flex; justify-content:center; gap:28px; flex-wrap:wrap; }
+  .breakdown-item{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .breakdown-num{ font-family:var(--display); font-size:30px; }
+  .breakdown-num.correct{ color:var(--correct); }
+  .breakdown-num.wrong{ color:var(--wrong); }
+  .breakdown-label{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); }
+
+  .review-section-title{ font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+  .review-section-title::after{ content:""; flex:1; height:1px; background:var(--line); }
+
+  .review-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:28px; }
+  .review-item{
+    display:flex; align-items:flex-start; gap:12px;
+    background:var(--card); border:1px solid var(--wrong-border); border-radius:var(--radius-sm);
+    padding:13px 16px; cursor:pointer; transition:background 0.12s ease; text-align:left; width:100%; color:var(--ink); font-family:var(--sans);
+  }
+  .review-item:hover{ background:var(--wrong-bg); }
+  .review-item-num{ font-family:var(--mono); font-size:12px; color:var(--wrong); min-width:24px; padding-top:1px; }
+  .review-item-text{ font-size:15.5px; line-height:1.5; color:var(--ink-dim); }
+  .review-item-answers{ font-family:var(--mono); font-size:12.5px; color:var(--ink-faint); margin-top:5px; }
+  .review-item-answers .your{ color:var(--wrong); }
+  .review-item-answers .correct{ color:var(--correct); }
+  .review-empty{ text-align:center; padding:28px; font-family:var(--serif); font-style:italic; color:var(--correct); background:var(--correct-bg); border:1px solid var(--correct-border); border-radius:var(--radius-md); margin-bottom:28px; }
+
+  .results-actions{ display:flex; gap:10px; justify-content:center; margin-bottom:36px; flex-wrap:wrap; }
+  .action-btn{ font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.05em; padding:11px 20px; border-radius:var(--radius-sm); cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); transition:all 0.15s ease; }
+  .action-btn:hover{ background:var(--card-hover); border-color:var(--ink-faint); }
+  .action-btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  .action-btn.primary:hover{ opacity:0.88; }
+
+  footer.page-footer{ text-align:center; font-family:var(--mono); font-size:11px; color:var(--ink-faint); padding:30px 0 10px; letter-spacing:0.04em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <span>Pregătire examen</span>
+      <span>Grile tip licență</span>
+    </div>
+    <h1 class="title">Grile <span class="accent-word">licență</span></h1>
+    <p class="subtitle">Click pe o variantă pentru verdict imediat. La final vezi exact ce ai greșit.</p>
+  </header>
+
+  <nav class="subjects" id="subjectNav"></nav>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <main id="questionList"></main>
+
+  <section class="results-screen" id="resultsScreen">
+    <div class="results-hero" id="resultsHero"></div>
+    <div id="reviewSection"></div>
+    <div class="results-actions">
+      <button class="action-btn" id="reviewWrongBtn">Vezi întrebările greșite</button>
+      <button class="action-btn primary" id="retryBtn">Reia disciplina</button>
+    </div>
+  </section>
+
+  <footer class="page-footer">Toate cele 200 de întrebări sunt salvate local în browser — progresul nu se pierde la reîncărcare.</footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  const SUBJECT_ORDER = ["sistemeInformaticeDeGestiune", "microeconomie", "contabilitateFinanciara", "bazeleContabilitatii"];
+  const MIX_KEY = "mixGeneral";
+  const ALL_KEYS = SUBJECT_ORDER.concat([MIX_KEY]);
+  const SUBJECT_COLORS = {
+    sistemeInformaticeDeGestiune:"#D7FF3F",
+    microeconomie:"#5EC8E0",
+    contabilitateFinanciara:"#FF9F4A",
+    bazeleContabilitatii:"#C792EA",
+    mixGeneral:"#FF5E9C"
+  };
+  const LETTERS = ["A","B","C","D"];
+  // Actualizat pentru a preveni cache-ul cu vechile chei (management, etc.)
+  const STORAGE_KEY = "ulbs_grile_progress_final_v3";
+
+  let state = loadState();
+  let currentSubject = state.lastSubject || SUBJECT_ORDER[0];
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(!parsed.mixSet) parsed.mixSet = generateMixSet();
+        if(!parsed.answers[MIX_KEY]) parsed.answers[MIX_KEY] = {};
+        return parsed;
+      }
+    }catch(e){}
+    return { answers:{ [MIX_KEY]:{} }, lastSubject:null, mixSet: generateMixSet() };
+  }
+
+  function generateMixSet(){
+    const pool = [];
+    SUBJECT_ORDER.forEach(subjKey => {
+      QUIZ_DATA[subjKey].questions.forEach((q, idx) => {
+        pool.push({ subj: subjKey, idx });
+      });
+    });
+    for(let i = pool.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 50);
+  }
+
+  function getMixQuestions(){ return state.mixSet.map(ref => QUIZ_DATA[ref.subj].questions[ref.idx]); }
+  function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+  function questionsFor(key){ return key === MIX_KEY ? getMixQuestions() : QUIZ_DATA[key].questions; }
+  function labelFor(key){ return key === MIX_KEY ? "Mix general" : QUIZ_DATA[key].label; }
+  function answersFor(subjectKey){ if(!state.answers[subjectKey]) state.answers[subjectKey] = {}; return state.answers[subjectKey]; }
+
+  function scoreFor(subjectKey){
+    const qs = questionsFor(subjectKey);
+    const ans = answersFor(subjectKey);
+    let correct = 0, wrong = 0;
+    Object.keys(ans).forEach(k => { if(ans[k] === qs[k].a) correct++; else wrong++; });
+    return { correct, wrong, answered: correct+wrong, total: qs.length };
+  }
+
+  function applySubjectColorVar(el, key){ el.style.setProperty("--subj-color", SUBJECT_COLORS[key]); }
+
+  function renderNav(){
+    const nav = document.getElementById("subjectNav");
+    nav.innerHTML = "";
+    ALL_KEYS.forEach((key, idx) => {
+      const isMix = key === MIX_KEY;
+      const sc = scoreFor(key);
+      const pct = sc.total > 0 ? Math.round((sc.answered/sc.total)*100) : 0;
+      const btn = document.createElement("button");
+      btn.className = "subject-btn" + (key === currentSubject ? " active" : "") + (isMix ? " subject-btn-mix" : "");
+      applySubjectColorVar(btn, key);
+      btn.innerHTML = `
+        <div class="subject-top-row">
+          <span class="subject-num">${isMix ? "★" : String(idx+1).padStart(2,"0")}</span>
+          <span class="subject-dot"></span>
+        </div>
+        <span class="subject-name">${labelFor(key)}</span>
+        <div class="subject-progress-track"><div class="subject-progress-fill" style="width:${pct}%"></div></div>
+        <div class="subject-progress-label">
+          <span>${sc.answered} / ${sc.total}</span>
+          <span class="score-part">${sc.correct}✓ ${sc.wrong > 0 ? sc.wrong+'✗' : ''}</span>
+        </div>
+      `;
+      btn.addEventListener("click", () => { currentSubject = key; state.lastSubject = key; saveState(); renderAll(); window.scrollTo({top:0, behavior:"smooth"}); });
+      nav.appendChild(btn);
+    });
+  }
+
+  function renderStatusBar(){
+    const sc = scoreFor(currentSubject);
+    const isMix = currentSubject === MIX_KEY;
+    const bar = document.getElementById("statusBar");
+    applySubjectColorVar(bar, currentSubject);
+    bar.innerHTML = `
+      <div class="status-left">
+        <span class="status-chip"><span class="status-dot correct"></span>${sc.correct} corecte</span>
+        <span class="status-chip"><span class="status-dot wrong"></span>${sc.wrong} greșite</span>
+        <span class="status-chip"><span class="status-dot pending"></span>${sc.total - sc.answered} rămase</span>
+      </div>
+      <button class="reset-btn" id="resetBtn">${isMix ? "Mix nou" : "Reset disciplină"}</button>
+    `;
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      const confirmMsg = isMix ? "Generezi alt mix de 50 de întrebări din toate cele 200? Progresul actual se șterge." : `Resetezi toate răspunsurile pentru "${labelFor(currentSubject)}"?`;
+      if(confirm(confirmMsg)){
+        if(isMix) state.mixSet = generateMixSet();
+        state.answers[currentSubject] = {};
+        saveState(); renderAll(); window.scrollTo({top:0, behavior:"smooth"});
+      }
+    });
+  }
+
+  function renderQuestions(){
+    const qs = questionsFor(currentSubject);
+    const ans = answersFor(currentSubject);
+    const list = document.getElementById("questionList");
+    const sc = scoreFor(currentSubject);
+    const isComplete = sc.answered === sc.total && sc.total > 0;
+
+    list.style.display = isComplete ? "none" : "block";
+    document.getElementById("resultsScreen").classList.toggle("visible", isComplete);
+
+    if(isComplete){ renderResults(); return; }
+
+    list.innerHTML = "";
+    qs.forEach((q, qIdx) => {
+      const userAnswer = ans[qIdx];
+      const isAnswered = userAnswer !== undefined;
+      const isCorrect = isAnswered && userAnswer === q.a;
+
+      const card = document.createElement("article");
+      card.className = "question-card" + (isAnswered ? (isCorrect ? " answered-correct" : " answered-wrong") : "");
+      applySubjectColorVar(card, currentSubject);
+
+      const head = document.createElement("div");
+      head.className = "q-head";
+      head.innerHTML = `<span class="q-num">${qIdx+1}.</span><span class="q-text">${escapeHtml(q.q)}</span>`;
+      card.appendChild(head);
+
+      const optsWrap = document.createElement("div");
+      optsWrap.className = "q-options";
+
+      q.o.forEach((optText, optIdx) => {
+        const btn = document.createElement("button");
+        btn.className = "opt-btn";
+        btn.innerHTML = `<span class="opt-letter">${LETTERS[optIdx]}</span><span>${escapeHtml(optText)}</span>`;
+
+        if(isAnswered){
+          btn.disabled = true;
+          if(optIdx === q.a) btn.classList.add("correct-answer");
+          else if(optIdx === userAnswer) btn.classList.add("wrong-selected");
+          else btn.classList.add("dim");
+        } else {
+          btn.addEventListener("click", () => { ans[qIdx] = optIdx; saveState(); renderAll(); });
+        }
+        optsWrap.appendChild(btn);
+      });
+      card.appendChild(optsWrap);
+
+      if(isAnswered){
+        const fb = document.createElement("div");
+        fb.className = "q-feedback " + (isCorrect ? "correct" : "wrong");
+        fb.innerHTML = isCorrect ? `<span class="fb-icon">✓</span> Răspuns corect.` : `<span class="fb-icon">✗</span> Greșit — răspunsul corect este ${LETTERS[q.a]}.`;
+        card.appendChild(fb);
+      }
+      list.appendChild(card);
+    });
+  }
+
+  function renderResults(){
+    const sc = scoreFor(currentSubject);
+    const pct = sc.total > 0 ? Math.round((sc.correct/sc.total)*100) : 0;
+    const radius = 64, circumference = 2 * Math.PI * radius, offset = circumference * (1 - pct/100);
+
+    const hero = document.getElementById("resultsHero");
+    applySubjectColorVar(hero, currentSubject);
+    hero.innerHTML = `
+      <div class="results-subject-name">${labelFor(currentSubject)} — test finalizat</div>
+      <div class="results-ring-wrap">
+        <div class="results-ring">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle class="results-ring-bg" cx="74" cy="74" r="${radius}"></circle>
+            <circle class="results-ring-fill" cx="74" cy="74" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"></circle>
+          </svg>
+          <div class="results-ring-label"><div class="results-ring-pct">${pct}%</div><div class="results-ring-frac">${sc.correct} din ${sc.total}</div></div>
+        </div>
+      </div>
+      <h2 class="results-headline">${headlineFor(pct)}</h2>
+      <div class="results-breakdown">
+        <div class="breakdown-item"><span class="breakdown-num correct">${sc.correct}</span><span class="breakdown-label">Corecte</span></div>
+        <div class="breakdown-item"><span class="breakdown-num wrong">${sc.wrong}</span><span class="breakdown-label">Greșite</span></div>
+      </div>
+    `;
+    renderReviewSection();
+  }
+
+  function headlineFor(pct){
+    if(pct === 100) return "Scor perfect";
+    if(pct >= 80) return "Foarte bine";
+    if(pct >= 60) return "Bine, dar mai e loc";
+    if(pct >= 40) return "Mai exersează puțin";
+    return "Reia materia";
+  }
+
+  function renderReviewSection(){
+    const qs = questionsFor(currentSubject);
+    const ans = answersFor(currentSubject);
+    const wrongIndices = [];
+    Object.keys(ans).forEach(k => { if(ans[k] !== qs[k].a) wrongIndices.push(Number(k)); });
+    wrongIndices.sort((a,b)=>a-b);
+
+    const section = document.getElementById("reviewSection");
+    if(wrongIndices.length === 0){
+      section.innerHTML = `<div class="review-empty">Toate cele ${qs.length} de răspunsuri au fost corecte.</div>`;
+      document.getElementById("reviewWrongBtn").style.display = "none";
+      return;
+    }
+
+    document.getElementById("reviewWrongBtn").style.display = "inline-block";
+    const itemsHtml = wrongIndices.map(idx => {
+      const q = qs[idx];
+      return `
+        <button class="review-item" data-idx="${idx}">
+          <span class="review-item-num">${idx+1}.</span>
+          <span>
+            <div class="review-item-text">${escapeHtml(truncate(q.q, 140))}</div>
+            <div class="review-item-answers">Tu: <span class="your">${LETTERS[ans[idx]]}</span> · Corect: <span class="correct">${LETTERS[q.a]}</span></div>
+          </span>
+        </button>
+      `;
+    }).join("");
+
+    section.innerHTML = `<div class="review-section-title">Întrebări greșite (${wrongIndices.length})</div><div class="review-list">${itemsHtml}</div>`;
+    section.querySelectorAll(".review-item").forEach(item => {
+      item.addEventListener("click", () => { showSingleWrongQuestion(Number(item.getAttribute("data-idx"))); });
+    });
+  }
+
+  function showSingleWrongQuestion(idx){
+    const qs = questionsFor(currentSubject);
+    const ans = answersFor(currentSubject);
+    const q = qs[idx];
+    const userAnswer = ans[idx];
+
+    document.getElementById("resultsScreen").classList.remove("visible");
+    const list = document.getElementById("questionList");
+    list.style.display = "block";
+    list.innerHTML = "";
+
+    const backBtn = document.createElement("button");
+    backBtn.className = "action-btn"; backBtn.style.marginBottom = "16px"; backBtn.textContent = "← Înapoi la rezultate";
+    backBtn.addEventListener("click", renderAll);
+    list.appendChild(backBtn);
+
+    const card = document.createElement("article");
+    card.className = "question-card answered-wrong";
+    applySubjectColorVar(card, currentSubject);
+    card.innerHTML = `<div class="q-head"><span class="q-num">${idx+1}.</span><span class="q-text">${escapeHtml(q.q)}</span></div><div class="q-options"></div>`;
+    
+    const optsWrap = card.querySelector(".q-options");
+    q.o.forEach((optText, optIdx) => {
+      const btn = document.createElement("button");
+      btn.className = "opt-btn"; btn.disabled = true;
+      btn.innerHTML = `<span class="opt-letter">${LETTERS[optIdx]}</span><span>${escapeHtml(optText)}</span>`;
+      if(optIdx === q.a) btn.classList.add("correct-answer");
+      else if(optIdx === userAnswer) btn.classList.add("wrong-selected");
+      else btn.classList.add("dim");
+      optsWrap.appendChild(btn);
+    });
+    
+    const fb = document.createElement("div");
+    fb.className = "q-feedback wrong";
+    fb.innerHTML = `<span class="fb-icon">✗</span> Răspunsul corect este ${LETTERS[q.a]}.`;
+    card.appendChild(fb);
+    list.appendChild(card);
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function truncate(str, max){ return str.length > max ? str.slice(0, max).trim() + "…" : str; }
+  function escapeHtml(str){ const div = document.createElement("div"); div.textContent = str; return div.innerHTML; }
+
+  function renderAll(){ renderNav(); renderStatusBar(); renderQuestions(); }
+
+  document.getElementById("reviewWrongBtn").addEventListener("click", () => { document.getElementById("reviewSection").scrollIntoView({behavior:"smooth", block:"start"}); });
+  document.getElementById("retryBtn").addEventListener("click", () => {
+    const isMix = currentSubject === MIX_KEY;
+    if(confirm(isMix ? "Generezi un mix nou și reiei?" : `Reiei disciplina "${labelFor(currentSubject)}" de la zero?`)){
+      if(isMix) state.mixSet = generateMixSet();
+      state.answers[currentSubject] = {}; saveState(); renderAll(); window.scrollTo({top:0, behavior:"smooth"});
+    }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
